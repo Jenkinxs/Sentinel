@@ -108,7 +108,7 @@ def deploy(yaraRule):
     accepted = (input("\nDeploy? Y/N ")).upper()
 
     if accepted == "Y":
-        with open(f"Sentinel_Rule{datetime.datetime.now():%Y%m%d_%H%M%S}.yar", "w") as file:
+        with open(f"/rules/Sentinel_Rule-{datetime.datetime.now():%Y%m%d_%H%M%S}.yar", "w") as file:
             file.write(yaraRule)
 
     else:
