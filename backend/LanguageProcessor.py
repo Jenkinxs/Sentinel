@@ -15,7 +15,7 @@ def main():
     
     print("Welcome to SENTINEL.\n")
 
-        # "Detect a dropper that writes a file to the Windows temp directory and executes it via cmd.exe"
+        # example prompt: "Detect a dropper that writes a file to the Windows temp directory and executes it via cmd.exe"
     prompt = input("Enter a description of what you want to identify. ")
 
     try:
