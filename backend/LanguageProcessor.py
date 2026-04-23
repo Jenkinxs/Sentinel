@@ -3,19 +3,21 @@ import os
 import Verifier
 import time
 import datetime
+import json
 
 
 MODEL_URL = "http://localhost:11434/api/generate" #Alter as needed for different providers, this is using ollama
 LLM1 = "SentinelGen"
 LLM2 = "SentinelRvw"
 RETRIES = 10
+STREAM = True
 
 
 def main():
     
     print("Welcome to SENTINEL.\n")
 
-        # example prompt: "Detect a dropper that writes a file to the Windows temp directory and executes it via cmd.exe"
+        
     prompt = input("Enter a description of what you want to identify. ")
 
     try:
@@ -72,8 +74,25 @@ def call_model(prompt, responseType, yarac):
         response = requests.post(MODEL_URL, json={
             "model": model,
             "prompt": prompt,
-            "stream": False
-        })
+            "stream": STREAM
+        }, stream=STREAM)
+        
+        if STREAM:
+            full_response = ""  # Accumulate the full response
+        for line in response.iter_lines():
+            if line:  # Skip empty lines
+                try:
+                    data = json.loads(line.decode('utf-8'))  # Parse each JSON chunk
+                    chunk = data.get("response", "")  # Extract the text chunk
+                    print(chunk, end='', flush=True)  # Print chunk in real-time without newline
+                    full_response += chunk  # Accumulate for return
+                except json.JSONDecodeError:
+                    continue  # Skip malformed lines if any
+
+        print()  # Add a newline after streaming completes
+        
+        
+        
 
         return response.json()["response"].strip()
     
