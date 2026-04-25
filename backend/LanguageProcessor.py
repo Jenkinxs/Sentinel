@@ -1,15 +1,27 @@
 import requests
 import os
-import Verifier
+#from backend import Verifier 
+#from backend import Deployer
+
+import Verifier, Deployer
+
 import time
 import datetime
 import json
+from openai import OpenAI
+import configparser
 
 
-MODEL_URL = "http://localhost:11434/api/generate" #Alter as needed for different providers, this is using ollama
-LLM1 = "SentinelGen"
-LLM2 = "SentinelRvw"
-RETRIES = 10
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+MODEL_URL = "https://openrouter.ai/api/v1"
+API_KEY = (config["API"]["api_key"]).strip('"')
+with open("SentinelGen", "r") as f: LLM1_PROMPT = f.read()
+with open("SentinelRvw", "r") as f: LLM2_PROMPT = f.read()
+
+RETRIES = 40
+
 STREAM = True
 
 
@@ -24,7 +36,7 @@ def main():
         print("Creating rules...")
         yaraRule = call_model(prompt, "LLM1", False)
 
-        #use llm1's response and send it through YARAC for initial syntax check, if fails, ship it back for correction
+        
         print("Verifying syntax...")
         verified, correctedRule = syntax_verification(yaraRule)
 
@@ -52,83 +64,110 @@ def main():
 
 
     except Exception as e:
-        print(f"\n\nAn error has occurred:\t{e}")
+        print(f"\n\nAn error has occurred at main:\t{e}")
 
 
 
 def call_model(prompt, responseType, yarac):
 
-    if responseType == "LLM1":
-        model = LLM1
+
+    if yarac == True:
+        print("Conversing with Model...")
+
     else:
-        model = LLM2
+        print("Calling Model...")
+
+    if responseType == "LLM1":
+        sysPrompt = LLM1_PROMPT
+
+    else:
+        sysPrompt = LLM2_PROMPT
 
 
-    try:
-        if not yarac:
-            print(f"Calling {model}")
 
-        else:
-            print(f"Conversing with {model}")
-
-        response = requests.post(MODEL_URL, json={
-            "model": model,
-            "prompt": prompt,
-            "stream": STREAM
-        }, stream=STREAM)
+    userPrompt = prompt
+    
+    client = OpenAI(
+        base_url=MODEL_URL,
+        api_key=API_KEY,
+        )
+    
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b:free",
+        messages=[
+            {"role": "system", "content": sysPrompt },
+            {"role": "user", "content": userPrompt}
+        ],
+        stream = STREAM
         
-        if STREAM:
-            full_response = ""  # Accumulate the full response
-        for line in response.iter_lines():
-            if line:  # Skip empty lines
-                try:
-                    data = json.loads(line.decode('utf-8'))  # Parse each JSON chunk
-                    chunk = data.get("response", "")  # Extract the text chunk
-                    print(chunk, end='', flush=True)  # Print chunk in real-time without newline
-                    full_response += chunk  # Accumulate for return
-                except json.JSONDecodeError:
-                    continue  # Skip malformed lines if any
-
-        print()  # Add a newline after streaming completes
-        
-        
-        
-
-        return response.json()["response"].strip()
+    )
     
 
-    except Exception as e:
-        print(f"\n\nAn error occurred when calling the model:\t{e}")
+    if STREAM:
+        full_content = ""
+        print("\n")
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                print(chunk.choices[0].delta.content, end="")
+                full_content += chunk.choices[0].delta.content
+
+        print("\n")
+
+        
+        return full_content
+    
+    else:
+        return response.choices[0].message.content
 
 
 def syntax_verification(rule):
 
-    for fail in range(RETRIES):
-        print(f"Retry #{fail + 1}")
-        verified, result   = Verifier.yarac(rule) # verified is a returncode
+    verified, result = Verifier.yarac(rule) # verified is a returncode
+    if verified == 0:
+        return True, rule
+    
+    else:
 
-        if verified == 0:
-            return True, rule
+        for fail in range(RETRIES):
+            print(f"Retry #{fail + 1}")
+            verified, result   = Verifier.yarac(rule)
+
+            if verified == 0:
+                return True, rule
+                
             
-        
-        else:
+            else:
 
-            prompt = f"The following YARA ruleset contains errors identified by the YARA compiler, YARAC. Look at information provided by YARAC, and alter the rule accordingly. " \
-                    f"YARAC OUTPUT:\n {verified} ; {result}.\nRULES:\n {rule}"
-            
-            print("Fixing Syntax...")
-            rule = call_model(prompt, "LLM1", True)
+                prompt = f"The following YARA ruleset contains errors identified by the YARA compiler, YARAC. Look at information provided by YARAC, and alter the rule accordingly.\n " \
+                        f"YARAC OUTPUT:\n{result}.\nRULES THAT YARAC TESTED:\n {rule}"
+                
+                print("\nFixing Syntax...")
+                
 
-    return False, None
+                rule = call_model(prompt, "LLM1", True)
+
+        return False, None
 
 
 
 def deploy(yaraRule):
     accepted = (input("\nDeploy? Y/N ")).upper()
 
+
     if accepted == "Y":
-        with open(f"/rules/Sentinel_Rule-{datetime.datetime.now():%Y%m%d_%H%M%S}.yar", "w") as file:
+
+        ruleName = "Sentinel_Rule-{datetime.datetime.now():%Y%m%d_%H%M%S}.yar"
+
+        with open(f"/rules/{ruleName}", "w") as file:
             file.write(yaraRule)
+        
+        print("Rule file written.")
+        scanDirectory = input("Paste a directory to scan.\n")
+
+        results = Deployer.scan(ruleName, scanDirectory)
+
+        print("\nHere are the results:\n")
+        print(results)
 
     else:
         print("Rule rejected. Aborting deployment.")
