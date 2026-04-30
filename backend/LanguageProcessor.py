@@ -16,14 +16,14 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 MODEL_URL = "https://openrouter.ai/api/v1"
-MODEL_NAME = "openrouter/free"
+MODEL_NAME = "openai/gpt-oss-120b:free" # openai/gpt-oss-120b:free
 API_KEY = (config["API"]["api_key"]).strip('"')
 with open("SentinelGen", "r") as f: LLM1_PROMPT = f.read()
 with open("SentinelRvw", "r") as f: LLM2_PROMPT = f.read()
 
 RETRIES = 40
 
-STREAM = False
+STREAM = True
 
 
 def main():
