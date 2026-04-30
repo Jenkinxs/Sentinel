@@ -16,13 +16,14 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 MODEL_URL = "https://openrouter.ai/api/v1"
+MODEL_NAME = "openrouter/free"
 API_KEY = (config["API"]["api_key"]).strip('"')
 with open("SentinelGen", "r") as f: LLM1_PROMPT = f.read()
 with open("SentinelRvw", "r") as f: LLM2_PROMPT = f.read()
 
 RETRIES = 40
 
-STREAM = True
+STREAM = False
 
 
 def main():
@@ -70,52 +71,51 @@ def main():
 
 def call_model(prompt, responseType, yarac):
 
-
-    if yarac == True:
+    if yarac:
         print("Conversing with Model...")
-
     else:
         print("Calling Model...")
 
     if responseType == "LLM1":
         sysPrompt = LLM1_PROMPT
-
     else:
         sysPrompt = LLM2_PROMPT
-
-
 
     userPrompt = prompt
     
     client = OpenAI(
         base_url=MODEL_URL,
         api_key=API_KEY,
-        )
-    
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b:free",
-        messages=[
-            {"role": "system", "content": sysPrompt },
-            {"role": "user", "content": userPrompt}
-        ],
-        stream = STREAM
-        
     )
     
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": sysPrompt},
+                {"role": "user", "content": userPrompt}
+            ],
+            stream=STREAM,
+            timeout=60,  # Important for streaming
+        )
+    except Exception as e:
+        print(f"\nError calling model: {e}")
+        raise
 
     if STREAM:
         full_content = ""
         print("\n")
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                print(chunk.choices[0].delta.content, end="")
-                full_content += chunk.choices[0].delta.content
+        try:
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content is not None:
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+                    full_content += chunk.choices[0].delta.content
+        except Exception as e:
+            print(f"\nError during streaming: {e}")
+            raise
 
         print("\n")
-
-        
         return full_content
-    
     else:
         return response.choices[0].message.content
 

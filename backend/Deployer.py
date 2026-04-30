@@ -8,7 +8,7 @@ def scan(rulesFile, scanDirectory):
 
     rulesPath = f"{(Path.cwd())}/rules/"
 
-    with open(f"{rulesPath}/{rulesFile}", "r") as file:
+    with open(f"{rulesPath}{rulesFile}", "r", encoding="utf-8") as file:
         ruleUncompiled = file.read()
 
 
