@@ -1,64 +1,129 @@
-**Plurilock Sentinel**
-
-
-
-Overview:
-Sentinel is a tool that automates the generation of YARA rules from natural language descriptions of malware behavior or threat characteristics.
-It uses large language models to generate, verify, and review YARA rules, then optionally scans a specified directory for matches.
-
-Components:
-- backend/LanguageProcessor.py: Main logic for generating, verifying, and reviewing rules, and deploying them.
-- backend/Deployer.py: Scans files using generated YARA rules.
-- backend/Verifier.py: Uses yarac to verify YARA syntax.
-- frontend/app.py: A web interface built with NiceGUI for interacting with Sentinel.
-- rules/: Directory where generated YARA rules are saved.
-
-Setup:
-1. Install the required Python packages:
-   pip install -r requirements.txt
-
-2. Configure the OpenRouter API key:
-   - Edit config.ini and set your OpenRouter API key under the [API] section.
-   - Example:
-     [API]
-     api_key = "your_openrouter_api_key"
-
-3. Ensure yarac (YARA compiler) is installed and available in your PATH.
-   - On Ubuntu/Debian: sudo apt install yara
-   - On macOS: brew install yara
-   - On Windows: Download from https://virustotal.github.io/yara/ and add to PATH.
-
-Usage:
-Backend (Command Line)
-- Run the backend directly:
-  python LanguageProcessor.py
-  Follow the prompts to describe the threat, verify, review, and deploy the rule.
-  After deployment, you will be prompted to enter a directory to scan.
-
-Frontend (Web Interface):
-- Start the web server:
-  cd frontend
-  python app.py
-- Open a browser and go to http://localhost:8081
-- Enter a description of the malware or threat.
-- Optionally, provide a context file or scan directory. If no scan directory is given, the rule file will just be written, not run.
-- Click "RUN" to start the pipeline.
-- View logs and results in the interface.
-
-Configuration:
-- config.ini: Contains the OpenRouter API key.
-- SentinelGen: Prompt used for the rule generation LLM.
-- SentinelRvw: Prompt used for the rule review LLM.
-- These files are plain text and can be adjusted to change the behavior of the models.
-
-Output:
-- Generated YARA rules are saved in the rules/ directory with a timestamped filename.
-- Scan results are printed to the console (backend) or displayed in the log console (frontend).
-
-Notes:
-- The tool relies on external LLMs via OpenRouter, so internet access is required.
-- The free tier of models may have rate limits; consider using a paid plan for heavy usage.
-- Always review generated rules before using them in production.
-
-License
-This project is provided as-is for educational and defensive security purposes.
+Plurilock Sentinel
+    
+    Plurilock Sentinel is a tool that turns natural‑language descriptions of malware or threat characteristics into fully‑qualified YARA rules.  
+    It uses large language models (via OpenRouter) to generate, verify, review and, if desired, deploy those rules by scanning a target directory.
+    
+    
+    
+    Table of contents  
+    - Overview  
+    - Main components  
+    - Setup  
+    - Usage  
+      - Backend – CLI  
+      - Frontend – Web interface  
+    - Configuration  
+    - Output  
+    - Notes  
+    - License
+    
+    
+    
+    Overview  
+    
+    Sentinel automates the full pipeline:  
+    1. Generate YARA rule from a text prompt.  
+    2. Verify the syntax with yarac.  
+    3. Review with a second LLM pass.  
+    4. Deploy by stored in rules/ and optionally scanning an input folder.
+    
+    
+    
+    Components
+    
+    | File | Purpose |
+    |------|---------|
+    | backend/LanguageProcessor.py | Core logic – generation, verification, review, and deployment. |
+    | backend/Deployer.py | Uses the generated rules to scan files in a directory. |
+    | backend/Verifier.py | Wrapper around yarac that checks syntax. |
+    | frontend/app.py | NiceGUI web interface for non‑CLI users. |
+    | rules/ | Folder where all YARA files are written (timestamped filenames). |
+    
+    
+    
+    Setup
+    
+    1. Install dependencies  
+       bash
+       pip install -r requirements.txt
+       
+    
+    2. Configure OpenRouter API key  
+       Edit config.ini:
+    
+       ini
+       [API]
+       api_key = "your_openrouter_api_key"
+       
+    
+    3. Install YARA compiler (yarac)  
+       Ubuntu/Debian: sudo apt install yara  
+       macOS: brew install yara  
+       Windows: Download from <https://virustotal.github.io/yara/> and add to PATH.
+    
+    
+    
+    Usage
+    
+    Backend – Command Line
+    
+    bash
+    python backend/LanguageProcessor.py
+    
+    
+    Follow the prompts:  
+    1. Supply a threat description.  
+    2. Verify the rule.  
+    3. Review the rule.  
+    4. Deploy (writes file + optional scan).  
+    5. If you choose to scan, enter the directory path when prompted.
+    
+    Frontend – Web Interface
+    
+    bash
+    cd frontend
+    python app.py
+    
+    
+    Open <http://localhost:8081> in your browser.
+    
+    1. Enter a malware/threat description.  
+    2. Optionally attach a context file or specify a scan directory.  
+    3. Click RUN.  
+    4. View live logs and results in the UI.
+    
+    
+    
+    Configuration
+    
+    | File | Purpose |
+    |------|---------|
+    | config.ini | OpenRouter API key (and other global settings). |
+    | SentinelGen | Prompt template for rule generation LLM. |
+    | SentinelRvw | Prompt template for rule review LLM. |
+    
+    These files are plain‑text; edit them to tweak model behaviour or add extra instructions.
+    
+    
+    
+    Output
+    
+    - YARA files are written to rules/ with a timestamped name, e.g. rule-2026-05-01-1405.yara.  
+    - Scan results are printed to the console (CLI) or shown in the frontend log panel.
+    
+    
+    
+    Notes
+    
+    - Requires an internet connection for LLM calls.  
+    - Free tier models may hit rate limits; a paid plan is recommended for heavy usage.  
+    - Always review generated rules before deploying them in production.
+    
+    
+    
+    License
+    
+    
+    MIT License
+      
+    This project is provided “as‑is” for educational and defensive security purposes.
