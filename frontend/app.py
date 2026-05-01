@@ -73,9 +73,13 @@ async def run_pipeline(client: Client):
         append_log("[INPUT] Description received — starting pipeline", client)
         set_progress(10, "Generating YARA rule…")
 
+        # Create logger that sends to UI
+        def ui_logger(msg):
+            append_log(msg, client)
+
         append_log("[SEARCH] Calling generator…", client)
         try:
-            yara_rule = await asyncio.to_thread(call_model, desc, "LLM1", False)
+            yara_rule = await asyncio.to_thread(call_model, desc, "LLM1", False, ui_logger)
         except Exception as exc:
             append_log(f"[ERROR] Generation error: {exc}", client)
             set_progress(0, "")
@@ -84,8 +88,12 @@ async def run_pipeline(client: Client):
         append_log("[SUCCESS] Rule generated", client)
         set_progress(30, "Verifying syntax…")
 
+        # Create logger for syntax verification
+        def ui_logger_syntax(msg):
+            append_log(msg, client)
+
         append_log("[TOOL] Running yarac syntax verification…", client)
-        verified, fixed_rule = await asyncio.to_thread(syntax_verification, yara_rule)
+        verified, fixed_rule = await asyncio.to_thread(syntax_verification, yara_rule, ui_logger_syntax)
         if not verified:
             append_log("[ERROR] Verification failed after max retries — aborting.", client)
             set_progress(0, "")
@@ -94,9 +102,13 @@ async def run_pipeline(client: Client):
         append_log("[SUCCESS] Syntax verified", client)
         set_progress(60, "Reviewing rule…")
 
+        # Create logger for reviewer
+        def ui_logger_review(msg):
+            append_log(msg, client)
+
         append_log("[REVIEW] Calling reviewer…", client)
         try:
-            review = await asyncio.to_thread(call_model, fixed_rule, "LLM2", False)
+            review = await asyncio.to_thread(call_model, fixed_rule, "LLM2", False, ui_logger_review)
         except Exception as exc:
             append_log(f"[ERROR] Review model error: {exc}", client)
             set_progress(0, "")
@@ -117,7 +129,11 @@ async def run_pipeline(client: Client):
         if scan_dir:
             append_log(f"[SEARCH] Scanning: {scan_dir}", client)
             try:
-                results = await asyncio.to_thread(Deployer.scan, rule_name, scan_dir)
+                # Create logger for deployer
+                def ui_logger_deployer(msg):
+                    append_log(msg, client)
+
+                results = await asyncio.to_thread(Deployer.scan, rule_name, scan_dir, ui_logger_deployer)
                 append_log("[RESULTS] Scan results:", client)
                 append_log(str(results), client)
             except Exception as exc:
@@ -207,11 +223,7 @@ with ui.element("div").style(
     # ── Header ────────────────────────────────────────────────────────────────
     with ui.element("div").style("margin-bottom: 2.5rem;"):
         with ui.element("div").style("display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem;"):
-            ui.html(
-                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" '
-                'stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
-                '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
-            )
+            
             ui.label("Plurilock").style(
                 "font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; "
                 "letter-spacing: 0.2em; color: #ffffff;"
@@ -351,4 +363,4 @@ with ui.element("div").style(
         )
 
 
-ui.run(title="Sentinel", port=8081, dark=True)
+ui.run(title="Sentinel", port=8081, dark=True,favicon="/atomic.png")

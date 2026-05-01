@@ -4,7 +4,12 @@ import yara_x
 
 
 
-def scan(rulesFile, scanDirectory):
+def scan(rulesFile, scanDirectory, logger=None):
+    def log(msg):
+        if logger:
+            logger(msg)
+        else:
+            print(msg)
 
     rulesPath = f"{(Path.cwd())}/rules/"
 
@@ -16,7 +21,7 @@ def scan(rulesFile, scanDirectory):
 
 
     results = {}
-    
+
     for root, dirs, files in os.walk(scanDirectory):
 
         for filename in files:
@@ -36,10 +41,9 @@ def scan(rulesFile, scanDirectory):
 
 
             except Exception as e:
+                log(f"Error scanning {filepath}: {e}")
 
-                print(f"Error scanning {filepath}: {e}")
-    
-    
+
     return results
 
 
