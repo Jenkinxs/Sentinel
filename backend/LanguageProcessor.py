@@ -2,27 +2,26 @@ import requests
 import os
 #from backend import Verifier 
 #from backend import Deployer
-
 import Verifier, Deployer
-
 import time
 import datetime
 import json
 from openai import OpenAI
 import configparser
-
+import sys
+from pathlib import Path
+# Resolve repo root (two levels up from this file)
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read(BASE_DIR / "config.ini")
 
 MODEL_URL = "https://openrouter.ai/api/v1"
 MODEL_NAME = "openai/gpt-oss-120b:free" # openai/gpt-oss-120b:free
 API_KEY = (config["API"]["api_key"]).strip('"')
-with open("SentinelGen", "r") as f: LLM1_PROMPT = f.read()
-with open("SentinelRvw", "r") as f: LLM2_PROMPT = f.read()
-
+with open(BASE_DIR / "SentinelGen", "r", encoding="utf-8") as f: LLM1_PROMPT = f.read()
+with open(BASE_DIR / "SentinelRvw", "r", encoding="utf-8") as f: LLM2_PROMPT = f.read()
 RETRIES = 40
-
 STREAM = True
 
 
@@ -37,10 +36,8 @@ def main():
         print("Creating rules...")
         yaraRule = call_model(prompt, "LLM1", False)
 
-        
         print("Verifying syntax...")
         verified, correctedRule = syntax_verification(yaraRule)
-
 
         if verified == True:
             print("Reviewing Rules...")
@@ -57,8 +54,7 @@ def main():
             time.sleep(3)
 
             print(ruleReview)
-
-            deploy(correctedRule)
+            deploy(correctedRule, ruleReview, prompt)
 
         else:
             print(f"Initial YARAC verification failed after {RETRIES} retries. Not proceeding.")
@@ -96,7 +92,7 @@ def call_model(prompt, responseType, yarac):
                 {"role": "user", "content": userPrompt}
             ],
             stream=STREAM,
-            timeout=60,  # Important for streaming
+            timeout=60,  
         )
     except Exception as e:
         print(f"\nError calling model: {e}")
@@ -116,61 +112,65 @@ def call_model(prompt, responseType, yarac):
 
         print("\n")
         return full_content
+    
     else:
-        return response.choices[0].message.content
+        return str(response.choices[0].message.content)
 
 
 def syntax_verification(rule):
+  
 
-    verified, result = Verifier.yarac(rule) # verified is a returncode
+    # First attempt with the original rule
+    verified, result = Verifier.yarac(rule)
     if verified == 0:
         return True, rule
-    
-    else:
 
-        for fail in range(RETRIES):
-            print(f"Retry #{fail + 1}")
-            verified, result   = Verifier.yarac(rule)
-
-            if verified == 0:
-                return True, rule
-                
-            
-            else:
-
-                prompt = f"The following YARA ruleset contains errors identified by the YARA compiler, YARAC. Look at information provided by YARAC, and alter the rule accordingly.\n " \
-                        f"YARAC OUTPUT:\n{result}.\nRULES THAT YARAC TESTED:\n {rule}"
-                
-                print("\nFixing Syntax...")
-                
-
-                rule = call_model(prompt, "LLM1", True)
-
-        return False, None
-
-
-
-def deploy(yaraRule):
-    accepted = (input("\nDeploy? Y/N ")).upper()
-
-
-    if accepted == "Y":
-
-        ruleName = "Sentinel_Rule-{datetime.datetime.now():%Y%m%d_%H%M%S}.yar"
-
-        with open(f"/rules/{ruleName}", "w") as file:
-            file.write(yaraRule)
+    # Otherwise, iteratively ask the LLM to fix the rule and re‑verify
+    for attempt in range(RETRIES):
+        print(f"Retry #{attempt + 1}")
+        prompt = (
+            "The following YARA ruleset contains errors identified by the YARA compiler, YARAC. "
+            "Look at information provided by YARAC, and alter the rule accordingly.\n"
+            f"YARAC OUTPUT:\n{result}.\nRULES THAT YARAC TESTED:\n {rule}"
+        )
+        print("\nFixing Syntax...")
+        fixed_rule = call_model(prompt, "LLM1", True)
+        # Verify the fixed rule
+        verified, result = Verifier.yarac(fixed_rule)
+        if verified == 0:
+            return True, fixed_rule
         
-        print("Rule file written.")
-        scanDirectory = input("Paste a directory to scan.\n")
+    # Exhausted retries
+    return False, None
 
-        results = Deployer.scan(ruleName, scanDirectory)
 
-        print("\nHere are the results:\n")
-        print(results)
 
-    else:
+def deploy(yaraRule, analysis, origPrompt):
+    #redeployPrompt = (f"Here is a reviewer's analysis of this YARA rule, take into consideration the following:\n1) THE RULE\n{yaraRule}\n2)THE ANALYSIS:\n{analysis}\n3)THE ORIGINAL PROMPT FOR THIS RULE:\n{origPrompt}")
+    
+    RULES_DIR = BASE_DIR / "rules"
+    RULES_DIR.mkdir(exist_ok=True)
+
+    accepted = input("\nDeploy? Y/N ").strip().upper()
+    if accepted == "N":
         print("Rule rejected. Aborting deployment.")
+        return
+    
+    # while accepted == "Q":
+    #     repromptedRule = call_model(redeployPrompt, "LLM1", True)
+    #     reviewed_repromptedRule = call_model(repromptedRule, "LLM2", False)
+    #     print(reviewed_repromptedRule)
+    #     deploy(repromptedRule)
+
+    rule_name = f"Sentinel_Rule-{datetime.datetime.now():%Y%m%d_%H%M%S}.yar"
+    rule_path = RULES_DIR / rule_name
+    rule_path.write_text(yaraRule, encoding="utf-8")
+    print("Rule file written.")
+
+    scan_directory = input(f"Paste a directory to scan. The current directory is {BASE_DIR}.\n")
+    results = Deployer.scan(rule_name, scan_directory)
+    print("\nHere are the results:\n")
+    print(results)
         
 
 
