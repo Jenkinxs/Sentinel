@@ -15,7 +15,7 @@ YARA SYNTAX RULES YOU MUST FOLLOW:
 2. Always include `import "math"` if using math.* conditions
 3. String variable names must be declared in the `strings:` block before use in `condition:`
 4. Regex patterns must use YARA-compatible syntax — no lookaheads (?=), no lookbehinds (?<=), no \d shorthand (use [0-9] instead)
-5. Every rule must have a `meta:` block with: description, author = "YARA-Pipeline", date (YYYY-MM-DD)
+5. Every rule must have a `meta:` block with: description, author = "Plurilock", date (YYYY-MM-DD)
 6. Conditions must be logically sound — do not reference undefined string variables
 7. Use `nocase` and `wide` modifiers deliberately and only when appropriate
 8. filesize constraints should use KB/MB units: filesize < 5MB

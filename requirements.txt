@@ -1,0 +1,4 @@
+requests>=2.25.1
+openai>=1.0.0
+yara_x>=0.0.13
+nicegui>=1.3.0
