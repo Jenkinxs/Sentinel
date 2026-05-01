@@ -1,1 +1,9 @@
 config.ini
+backend/__pycache__/Deployer.cpython-314.pyc
+backend/__pycache__/LanguageProcessor.cpython-314.pyc
+backend/__pycache__/Verifier.cpython-314.pyc
+frontend/__pycache__/app.cpython-314.pyc
+rules/Sentinel_Rule-20260501_103352.yar
+backend/__pycache__/Deployer.cpython-314.pyc
+backend/__pycache__/Verifier.cpython-314.pyc
+backend/__pycache__/Verifier.cpython-314.pyc
