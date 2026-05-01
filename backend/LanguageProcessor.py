@@ -154,11 +154,14 @@ def syntax_verification(rule, logger=None):
     # Otherwise, iteratively ask the LLM to fix the rule and re‑verify
     for attempt in range(RETRIES):
         log(f"Retry #{attempt + 1}")
+
         prompt = (
             "The following YARA ruleset contains errors identified by the YARA compiler, YARAC. "
             "Look at information provided by YARAC, and alter the rule accordingly.\n"
             f"YARAC OUTPUT:\n{result}.\nRULES THAT YARAC TESTED:\n {rule}"
         )
+
+        
         log("\nFixing Syntax...")
         fixed_rule = call_model(prompt, "LLM1", True, logger=log)
 
