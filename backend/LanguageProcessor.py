@@ -1,26 +1,32 @@
-import requests
-import os
-#from backend import Verifier
-#from backend import Deployer
-import Verifier, Deployer
-import time
+import configparser
 import datetime
 import json
-from openai import OpenAI
-import configparser
+import os
 import sys
+import time
 from pathlib import Path
-# Resolve repo root (two levels up from this file)
+
+import Deployer
+import requests
+
+# from backend import Verifier
+# from backend import Deployer
+import Verifier
+from openai import OpenAI
+
+# Resolve repo root (two levels up from this file) -
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 config = configparser.ConfigParser()
 config.read(BASE_DIR / "config.ini")
 
 MODEL_URL = "https://openrouter.ai/api/v1"
-MODEL_NAME = "openai/gpt-oss-120b:free" # openai/gpt-oss-120b:free
+MODEL_NAME = "openai/gpt-oss-120b:free"  # openai/gpt-oss-120b:free
 API_KEY = (config["API"]["api_key"]).strip('"')
-with open(BASE_DIR / "SentinelGen", "r", encoding="utf-8") as f: LLM1_PROMPT = f.read()
-with open(BASE_DIR / "SentinelRvw", "r", encoding="utf-8") as f: LLM2_PROMPT = f.read()
+with open(BASE_DIR / "SentinelGen", "r", encoding="utf-8") as f:
+    LLM1_PROMPT = f.read()
+with open(BASE_DIR / "SentinelRvw", "r", encoding="utf-8") as f:
+    LLM2_PROMPT = f.read()
 RETRIES = 40
 STREAM = True
 
@@ -29,7 +35,6 @@ def main():
 
     print("Welcome to SENTINEL.\n")
     prompt = input("Enter a description of what you want to identify. ")
-
 
     try:
         print("Creating rules...")
@@ -42,10 +47,13 @@ def main():
             ruleReview = call_model(correctedRule, "LLM2", False, logger=None)
 
             print("\n\n")
-            print("=============================================================================================================================")
-            print("Here's the finalized rule, along with the Reviewer's analysis. Double check this is what you intended for before deployment.\n")
+            print(
+                "============================================================================================================================="
+            )
+            print(
+                "Here's the finalized rule, along with the Reviewer's analysis. Double check this is what you intended for before deployment.\n"
+            )
             time.sleep(5)
-
 
             print(correctedRule)
             print("\n")
@@ -55,7 +63,9 @@ def main():
             deploy(correctedRule, ruleReview, prompt)
 
         else:
-            print(f"Initial YARAC verification failed after {RETRIES} retries. Not proceeding.")
+            print(
+                f"Initial YARAC verification failed after {RETRIES} retries. Not proceeding."
+            )
 
     except Exception as e:
         print(f"\n\nAn error has occurred at main:\t{e}")
@@ -68,7 +78,6 @@ def call_model(prompt, responseType, yarac, logger=None):
             logger(msg)
         else:
             print(msg, **kwargs)
-
 
     if yarac:
         log("Conversing with Model...")
@@ -88,12 +97,11 @@ def call_model(prompt, responseType, yarac, logger=None):
     )
 
     try:
-
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": sysPrompt},
-                {"role": "user", "content": userPrompt}
+                {"role": "user", "content": userPrompt},
             ],
             stream=STREAM,
             timeout=60,
@@ -104,12 +112,9 @@ def call_model(prompt, responseType, yarac, logger=None):
         raise
 
     if STREAM:
-
         full_content = ""
 
         try:
-
-
             # Log initial newline only for terminal (logger is None)
             if logger is None:
                 log("\n")
@@ -126,7 +131,6 @@ def call_model(prompt, responseType, yarac, logger=None):
             else:
                 # For frontend, log the entire string with surrounding newlines to match original behavior
                 log("\n" + full_content + "\n", end="", flush=True)
-
 
         except Exception as e:
             log(f"\nError during streaming: {e}")
@@ -150,7 +154,6 @@ def syntax_verification(rule, logger=None):
     if verified == 0:
         return True, rule
 
-
     # Otherwise, iteratively ask the LLM to fix the rule and re‑verify
     for attempt in range(RETRIES):
         log(f"Retry #{attempt + 1}")
@@ -161,10 +164,8 @@ def syntax_verification(rule, logger=None):
             f"YARAC OUTPUT:\n{result}.\nRULES THAT YARAC TESTED:\n {rule}"
         )
 
-        
         log("\nFixing Syntax...")
         fixed_rule = call_model(prompt, "LLM1", True, logger=log)
-
 
         # Verify the fixed rule
         verified, result = Verifier.yarac(fixed_rule)
@@ -176,7 +177,7 @@ def syntax_verification(rule, logger=None):
 
 
 def deploy(yaraRule, analysis, origPrompt):
-    #redeployPrompt = (f"Here is a reviewer's analysis of this YARA rule, take into consideration the following:\n1) THE RULE\n{yaraRule}\n2)THE ANALYSIS:\n{analysis}\n3)THE ORIGINAL PROMPT FOR THIS RULE:\n{origPrompt}")
+    # redeployPrompt = (f"Here is a reviewer's analysis of this YARA rule, take into consideration the following:\n1) THE RULE\n{yaraRule}\n2)THE ANALYSIS:\n{analysis}\n3)THE ORIGINAL PROMPT FOR THIS RULE:\n{origPrompt}")
 
     RULES_DIR = BASE_DIR / "rules"
     RULES_DIR.mkdir(exist_ok=True)
@@ -197,7 +198,9 @@ def deploy(yaraRule, analysis, origPrompt):
     rule_path.write_text(yaraRule, encoding="utf-8")
     print("Rule file written.")
 
-    scan_directory = input(f"Paste a directory to scan. The current directory is {BASE_DIR}.\n")
+    scan_directory = input(
+        f"Paste a directory to scan. The current directory is {BASE_DIR}.\n"
+    )
     results = Deployer.scan(rule_name, scan_directory)
     print("\nHere are the results:\n")
     print(results)
