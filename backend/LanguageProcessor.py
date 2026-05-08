@@ -14,7 +14,7 @@ import requests
 import Verifier
 from openai import OpenAI
 
-# Resolve repo root (two levels up from this file) -
+# Resolve two levels up from this file
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 config = configparser.ConfigParser()
@@ -115,7 +115,7 @@ def call_model(prompt, responseType, yarac, logger=None):
         full_content = ""
 
         try:
-            # Log initial newline only for terminal (logger is None)
+            
             if logger is None:
                 log("\n")
             for chunk in response:
@@ -125,11 +125,11 @@ def call_model(prompt, responseType, yarac, logger=None):
                     if logger is None:
                         log(content, end="", flush=True)
 
-            # After the loop
+            
             if logger is None:
                 log("\n")  # final newline for terminal
             else:
-                # For frontend, log the entire string with surrounding newlines to match original behavior
+                # For frontend, log the entire string with surrounding newlines
                 log("\n" + full_content + "\n", end="", flush=True)
 
         except Exception as e:
@@ -167,7 +167,7 @@ def syntax_verification(rule, logger=None):
         log("\nFixing Syntax...")
         fixed_rule = call_model(prompt, "LLM1", True, logger=log)
 
-        # Verify the fixed rule
+        
         verified, result = Verifier.yarac(fixed_rule)
         if verified == 0:
             return True, fixed_rule
