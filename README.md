@@ -5,7 +5,7 @@
 Overview:
 
 Sentinel is a tool that automates the generation of YARA rules from natural language descriptions of malware behavior or threat characteristics.
-It uses large language models to generate, verify, and review YARA rules, then optionally scans a specified directory for matches.
+It uses large language models (LLMs) to generate, verify, and review YARA rules, then optionally scans a specified directory for matches.
 
 Components:
 - backend/LanguageProcessor.py: Main logic for generating, verifying, and reviewing rules, and deploying them.
@@ -48,7 +48,7 @@ Frontend (Web Interface):
 - View logs and results in the interface.
 
 Configuration:
-- config.ini: Contains the OpenRouter API key.
+- config.ini: Where you place the OpenRouter API key.
 - SentinelGen: Prompt used for the rule generation LLM.
 - SentinelRvw: Prompt used for the rule review LLM.
 - These files are plain text and can be adjusted to change the behavior of the models.
@@ -57,10 +57,3 @@ Output:
 - Generated YARA rules are saved in the rules/ directory with a timestamped filename.
 - Scan results are printed to the console (backend) or displayed in the log console (frontend).
 
-Notes:
-- The tool relies on external LLMs via OpenRouter, so internet access is required.
-- The free tier of models may have rate limits; consider using a paid plan for heavy usage.
-- Always review generated rules before using them in production.
-
-License
-This project is provided as-is for educational and defensive security purposes.
