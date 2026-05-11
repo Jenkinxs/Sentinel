@@ -57,6 +57,3 @@ Output:
 - Generated YARA rules are saved in the rules/ directory with a timestamped filename.
 - Scan results are printed to the console (backend) or displayed in the log console (frontend).
 
-Notes:
-- The tool relies on external LLMs via OpenRouter, so internet access is required.
-- The free tier of models may have rate limits; using a paid plan for heavy usage is advised.
