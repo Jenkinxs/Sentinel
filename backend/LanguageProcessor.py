@@ -5,30 +5,36 @@ import os
 import sys
 import time
 from pathlib import Path
-
 import Deployer
 import requests
-
-# from backend import Verifier
-# from backend import Deployer
 import Verifier
 from openai import OpenAI
 
+
+
+
+
+
 # Resolve two levels up from this file
 BASE_DIR = Path(__file__).resolve().parents[1]
+CONFIG = configparser.ConfigParser()
+CONFIG.read(BASE_DIR / "config.ini")
 
-config = configparser.ConfigParser()
-config.read(BASE_DIR / "config.ini")
 
-MODEL_URL = "https://openrouter.ai/api/v1"
-MODEL_NAME = "openai/gpt-oss-120b:free"  # openai/gpt-oss-120b:free
-API_KEY = (config["API"]["api_key"]).strip('"')
-with open(BASE_DIR / "SentinelGen", "r", encoding="utf-8") as f:
-    LLM1_PROMPT = f.read()
-with open(BASE_DIR / "SentinelRvw", "r", encoding="utf-8") as f:
-    LLM2_PROMPT = f.read()
+
+MODEL_URL = (CONFIG["ROUTER"]["url"]).strip('"')
+GENERATOR = (CONFIG["ROUTER"]["generator"]).strip('"')
+GENERATOR = (CONFIG["ROUTER"]["reviewer"]).strip('"')
+API_KEY = (CONFIG["API"]["api_key"]).strip('"')
+
 RETRIES = 40
 STREAM = True
+
+
+with open(BASE_DIR / "SentinelGen", "r", encoding="utf-8") as f:
+    GENERATOR_PROMPT = f.read()
+with open(BASE_DIR / "SentinelRvw", "r", encoding="utf-8") as f:
+    REVIEWER_PROMPT = f.read()
 
 
 def main():
@@ -85,9 +91,9 @@ def call_model(prompt, responseType, yarac, logger=None):
         log("Calling Model...")
 
     if responseType == "LLM1":
-        sysPrompt = LLM1_PROMPT
+        sysPrompt = GENERATOR_PROMPT
     else:
-        sysPrompt = LLM2_PROMPT
+        sysPrompt = REVIEWER_PROMPT
 
     userPrompt = prompt
 
@@ -204,6 +210,8 @@ def deploy(yaraRule, analysis, origPrompt):
     results = Deployer.scan(rule_name, scan_directory)
     print("\nHere are the results:\n")
     print(results)
+
+
 
 
 if __name__ == "__main__":
