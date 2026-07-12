@@ -1,31 +1,13 @@
-import os
-import subprocess
-import tempfile
+import yara_x
 
 
-def yarac(rule_text):
+def verify(rule_text):
+    """Verify YARA syntax via yara_x compiler.
+
+    Returns (True, rule_text) on success, (False, error_str) on failure.
+    """
     try:
-
-        with tempfile.NamedTemporaryFile(suffix=".yar", mode="w", delete=False) as f:
-            f.write(rule_text)
-            tmp = f.name
-
-        result = subprocess.run(
-            ["yarac", tmp, "/dev/null"],
-            capture_output=True, text=True
-        )
-        
-        os.unlink(tmp)
-
-        print(f"YARAC RESULT: {result}")
-        print(f"YARAC RETURN CODE: {result.returncode}")
-              
-        return result.returncode, result
-   
+        yara_x.compile(rule_text)
+        return True, rule_text
     except Exception as e:
-
-        print(f"\n\n{e}")
-
-
-if __name__ == "main":
-    yarac("Test Rule")
+        return False, str(e)

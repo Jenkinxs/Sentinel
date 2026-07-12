@@ -1,0 +1,22 @@
+[API]
+## OpenRouter API key (or any OpenAI-compatible endpoint key)
+## Get yours at https://openrouter.ai/keys
+api_key = "YOUR_OPENROUTER_API_KEY_HERE"
+
+[ROUTER]
+## Base URL for the OpenAI-compatible API endpoint
+url = "https://openrouter.ai/api/v1"
+
+## Model IDs for the generator and reviewer LLMs
+generator = "openai/gpt-oss-120b:free"
+reviewer = "openai/gpt-oss-120b:free"
+
+[LLM]
+## Maximum retries when yara_x compilation fails
+yarac_retries = 10
+
+## Number of generator-reviewer feedback loops
+feedback_loops = 3
+
+## Enable streaming output (True/False)
+stream = True

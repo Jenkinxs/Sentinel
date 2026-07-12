@@ -1,59 +1,104 @@
-**Plurilock Sentinel**
+# Plurilock Sentinel
 
+YARA rule generation, powered by AI.
 
+Describe a threat in natural language — Sentinel generates a YARA rule, verifies its syntax, reviews it against your intent, iteratively improves it via a generator-reviewer feedback loop, and optionally scans a directory for matches.
 
-Overview:
+## Quick Start
 
-Sentinel is a tool that automates the generation of YARA rules from natural language descriptions of malware behavior or threat characteristics.
-It uses large language models (LLMs) to generate, verify, and review YARA rules, then optionally scans a specified directory for matches.
+```bash
+git clone https://github.com/Jenkinxs/Sentinel.git
+cd Sentinel
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env — add your OpenRouter API key
+```
 
-Components:
-- backend/LanguageProcessor.py: Main logic for generating, verifying, and reviewing rules, and deploying them.
-- backend/Deployer.py: Scans files using generated YARA rules.
-- backend/Verifier.py: Uses yarac to verify YARA syntax.
-- frontend/app.py: A web interface built with NiceGUI for interacting with Sentinel.
-- rules/: Directory where generated YARA rules are saved.
+No system dependencies required. YARA compilation is handled by `yara_x` (pure Python).
 
-Setup:
-1. Install the required Python packages:
-   pip install -r requirements.txt
+## Usage
 
-2. Configure the OpenRouter API key:
-   - Edit config.ini and set your OpenRouter API key under the [API] section.
-   - Example:
-     [API]
-     api_key = "your_openrouter_api_key"
+### CLI (interactive)
 
-3. Ensure yarac (YARA compiler) is installed and available in your PATH.
-   - On Ubuntu/Debian: sudo apt install yara
-   - On macOS: brew install yara
-   - On Windows: Download from https://virustotal.github.io/yara/ and add to PATH.
+```bash
+python backend/LanguageProcessor.py
+```
 
-Usage:
+### CLI (batch — non-interactive)
 
-Backend (Command Line)
-- Run the backend directly:
-  python LanguageProcessor.py
-  Follow the prompts to describe the threat, verify, review, and deploy the rule.
-  After deployment, you will be prompted to enter a directory to scan.
+```bash
+python backend/LanguageProcessor.py --cli \
+    -d "Detect Cobalt Strike beacon with named pipe and registry artifacts" \
+    --scan-dir /tmp/samples \
+    --no-deploy
+```
 
-Frontend (Web Interface):
-- Start the web server:
-  cd frontend
-  python app.py
-- Open a browser and go to http://localhost:8081
-- Enter a description of the malware or threat.
-- Optionally, provide a context file or scan directory. If no scan directory is given, the rule file will just be written, not run.
-- Click "RUN" to start the pipeline.
-- View logs and results in the interface.
+### Web UI
 
-Configuration:
-- config.ini: Where you place the OpenRouter API key.
-- SentinelGen: Prompt used for the rule generation LLM.
-- SentinelRvw: Prompt used for the rule review LLM.
-- These files are plain text and can be adjusted to change the behavior of the models.
+```bash
+python frontend/app.py --port 8081
+```
 
-Output:
-- Generated YARA rules are saved in the rules/ directory with a timestamped filename.
-- Scan results are printed to the console (backend) or displayed in the log console (frontend).
+Open http://localhost:8081, describe the threat, optionally drop a context file, set a scan directory, and click **RUN**.
 
+## How It Works
+
+```
+Describe threat → Generator LLM writes YARA rule
+                 → yara_x verifies syntax (auto-fixes up to N retries)
+                 → Reviewer LLM checks semantic match against your intent
+                 → Generator + Reviewer converse (N feedback loops) to refine
+                 → Save to rules/ → optionally scan directory
+```
+
+Two independent LLMs (generator + reviewer) iterate in a feedback loop — the generator writes rules, the reviewer critiques them, and the loop yields progressively more precise rules.
+
+## Configuration
+
+| Method | File | Priority |
+|---|---|---|
+| Environment | `.env` (gitignored) | Highest — overrides everything |
+| Config file | `config.ini` (gitignored) | Fallback defaults |
+| Example config | `config.ini.example` | Template with annotations |
+
+Key settings in `config.ini` / `.env`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `SENTINEL_API_KEY` | — | OpenRouter (or OpenAI-compatible) API key |
+| `generator` | `openai/gpt-oss-120b:free` | Model for rule generation |
+| `reviewer` | `openai/gpt-oss-120b:free` | Model for rule review |
+| `yarac_retries` | 10 | Max LLM fix attempts on syntax errors |
+| `feedback_loops` | 3 | Generator-reviewer refinement iterations |
+| `stream` | True | Stream LLM output token-by-token |
+
+### Local models (Ollama)
+
+Modelfiles for local inference live in `modelfiles/`:
+
+| Role | Model | File |
+|---|---|---|
+| Generator | Qwen3:8b | `modelfiles/Modelfile.SentinelGen` |
+| Reviewer | Gemma3:4b | `modelfiles/Modelfile.SentinelRvw` |
+
+Set `url` in config to your Ollama endpoint and point `generator`/`reviewer` to your local model names.
+
+## Project Layout
+
+```
+Sentinel/
+  backend/
+    LanguageProcessor.py   Pipeline: generate → verify → review → feedback → deploy
+    Deployer.py            File scanner using compiled YARA rules
+    Verifier.py            YARA syntax validation via yara_x
+  frontend/
+    app.py                 NiceGUI web interface (dark theme, live logs)
+  modelfiles/              Ollama Modelfiles for local inference
+  rules/                   Generated YARA rules
+  config.ini               Runtime configuration (gitignored)
+  config.ini.example       Annotated config template
+  .env                     Environment overrides (gitignored)
+  .env.example             Env template
+  SentinelGen              System prompt for the generator LLM
+  SentinelRvw              System prompt for the reviewer LLM
+```

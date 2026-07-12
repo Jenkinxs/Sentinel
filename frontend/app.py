@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import datetime
 from pathlib import Path
@@ -11,17 +12,17 @@ sys.path.append(str(BASE_DIR / "backend"))
 from backend.LanguageProcessor import call_model, syntax_verification, BASE_DIR as LP_BASE_DIR
 from backend import Deployer
 
-# ── Global state ──────────────────────────────────────────────────────────────
+## ── Global state ─────────────────────────────────────────────────────────────
 log_lines: list[str] = []
-log_container = None          # set after UI build
-progress_bar = None           # set after UI build
-progress_label = None         # set after UI build
+log_container = None
+progress_bar = None
+progress_label = None
 description_input = None
 scan_dir_input = None
+context_content: str | None = None
 
 
-
-def append_log(msg: str, client: Client = None):
+def append_log(msg: str, client=None):
     log_lines.append(msg)
     if log_container is None:
         return
@@ -54,7 +55,7 @@ def set_progress(pct: int, label: str = ""):
         progress_label.text = label
 
 
-async def run_pipeline(client: Client):
+async def run_pipeline(client):
     with client:
         log_lines.clear()
         if log_container is not None:
@@ -70,16 +71,23 @@ async def run_pipeline(client: Client):
             set_progress(0, "")
             return
 
+        ## Append context file content if provided
+        full_desc = desc
+        if context_content:
+            full_desc = f"{desc}\n\nContext file contents:\n{context_content}"
+            append_log("[INPUT] Context file loaded — appended to description", client)
+
         append_log("[INPUT] Description received — starting pipeline", client)
         set_progress(10, "Generating YARA rule…")
 
-        # Create logger that sends to UI
         def ui_logger(msg):
             append_log(msg, client)
 
         append_log("[SEARCH] Calling generator…", client)
         try:
-            yara_rule = await asyncio.to_thread(call_model, desc, "LLM1", False, ui_logger)
+            yara_rule = await asyncio.to_thread(
+                call_model, full_desc, "GENERATOR", False, ui_logger
+            )
         except Exception as exc:
             append_log(f"[ERROR] Generation error: {exc}", client)
             set_progress(0, "")
@@ -88,12 +96,13 @@ async def run_pipeline(client: Client):
         append_log("[SUCCESS] Rule generated", client)
         set_progress(30, "Verifying syntax…")
 
-        # Create logger for syntax verification
         def ui_logger_syntax(msg):
             append_log(msg, client)
 
-        append_log("[TOOL] Running yarac syntax verification…", client)
-        verified, fixed_rule = await asyncio.to_thread(syntax_verification, yara_rule, ui_logger_syntax)
+        append_log("[TOOL] Running yara_x syntax verification…", client)
+        verified, fixed_rule = await asyncio.to_thread(
+            syntax_verification, yara_rule, ui_logger_syntax
+        )
         if not verified:
             append_log("[ERROR] Verification failed after max retries — aborting.", client)
             set_progress(0, "")
@@ -102,13 +111,14 @@ async def run_pipeline(client: Client):
         append_log("[SUCCESS] Syntax verified", client)
         set_progress(60, "Reviewing rule…")
 
-        # Create logger for reviewer
         def ui_logger_review(msg):
             append_log(msg, client)
 
         append_log("[REVIEW] Calling reviewer…", client)
         try:
-            review = await asyncio.to_thread(call_model, fixed_rule, "LLM2", False, ui_logger_review)
+            review = await asyncio.to_thread(
+                call_model, fixed_rule, "REVIEWER", False, ui_logger_review
+            )
         except Exception as exc:
             append_log(f"[ERROR] Review model error: {exc}", client)
             set_progress(0, "")
@@ -122,18 +132,19 @@ async def run_pipeline(client: Client):
         rules_dir.mkdir(exist_ok=True)
         rule_path = rules_dir / rule_name
         rule_path.write_text(fixed_rule, encoding="utf-8")
-        append_log(f"[SAVE] Rule saved → {rule_path}", client)
+        append_log(f"[SAVE] Rule saved -> {rule_path}", client)
         set_progress(90, "Scanning…")
 
         scan_dir = scan_dir_input.value.strip()
         if scan_dir:
             append_log(f"[SEARCH] Scanning: {scan_dir}", client)
             try:
-                # Create logger for deployer
                 def ui_logger_deployer(msg):
                     append_log(msg, client)
 
-                results = await asyncio.to_thread(Deployer.scan, rule_name, scan_dir, ui_logger_deployer)
+                results = await asyncio.to_thread(
+                    Deployer.scan, rule_name, scan_dir, ui_logger_deployer
+                )
                 append_log("[RESULTS] Scan results:", client)
                 append_log(str(results), client)
             except Exception as exc:
@@ -142,11 +153,11 @@ async def run_pipeline(client: Client):
             append_log("[WARNING] No scan directory — skipping scan step", client)
 
         set_progress(100, "Pipeline complete")
-        append_log("[SUCCESS] Pipeline finished successfully", client)       
+        append_log("[SUCCESS] Pipeline finished successfully", client)
 
 
-# ── Global styles ─────────────────────────────────────────────────────────────
-ui.add_head_html("""
+## ── Global styles ─────────────────────────────────────────────────────────────
+ui.add_head_html("""\
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -170,7 +181,6 @@ ui.add_head_html("""
     min-height: 100vh;
   }
 
-  /* Kill Quasar defaults */
   .q-field__native, .q-field__input, textarea {
     color: var(--text) !important;
     font-family: 'JetBrains Mono', monospace !important;
@@ -196,34 +206,29 @@ ui.add_head_html("""
     color: var(--accent) !important;
   }
 
-  /* Progress bar */
   .q-linear-progress__track { background: var(--border) !important; }
   .q-linear-progress__model { background: var(--accent) !important; }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-  /* Scan result label text */
-  .nicegui-label { color: var(--text); }
-
-  /* Upload */
   .q-uploader { background: #0d1117 !important; border: 1px dashed var(--border) !important; border-radius: 4px !important; }
   .q-uploader__header { background: transparent !important; color: var(--muted) !important; }
 </style>
 """)
 
 
-# ── Layout ────────────────────────────────────────────────────────────────────
+## ── Layout ────────────────────────────────────────────────────────────────────
 with ui.element("div").style(
     "max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem; min-height: 100vh;"
 ):
 
-    # ── Header ────────────────────────────────────────────────────────────────
+    ## ── Header ────────────────────────────────────────────────────────────────
     with ui.element("div").style("margin-bottom: 2.5rem;"):
-        with ui.element("div").style("display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem;"):
-            
+        with ui.element("div").style(
+            "display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem;"
+        ):
             ui.label("Plurilock").style(
                 "font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; "
                 "letter-spacing: 0.2em; color: #ffffff;"
@@ -233,39 +238,47 @@ with ui.element("div").style(
                 "letter-spacing: 0.2em; color: #ff0000;"
             )
         ui.label("Automated threat rule generation").style(
-            "font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;"
+            "font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; "
+            "text-transform: uppercase;"
         )
         ui.element("div").style(
             "margin-top: 1rem; height: 1px; "
             "background: linear-gradient(90deg, #00d4ff 0%, #7c3aed 40%, transparent 100%);"
         )
 
-    # ── Two-column grid ────────────────────────────────────────────────────────
+    ## ── Two-column grid ────────────────────────────────────────────────────────
     with ui.element("div").style(
-        "display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;"
+        "display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; "
+        "margin-bottom: 1.25rem;"
     ):
-        # ── Left: inputs ──────────────────────────────────────────────────────
+        ## ── Left: inputs ──────────────────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 6px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;"
+            "border-radius: 6px; padding: 1.5rem; display: flex; "
+            "flex-direction: column; gap: 1rem;"
         ):
             ui.label("// INPUT PARAMETERS").style(
-                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; margin-bottom: 0.25rem;"
+                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; "
+                "margin-bottom: 0.25rem;"
             )
 
             description_input = (
-                ui.textarea(label="Malware description", placeholder="Describe the malware behaviour, IOCs, or threat characteristics…")
+                ui.textarea(
+                    label="Malware description",
+                    placeholder="Describe the malware behaviour, IOCs, or threat characteristics..."
+                )
                 .props("outlined autogrow rows=6")
                 .style("width: 100%;")
             )
 
             ui.label("Context file (optional)").style(
-                "font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase;"
+                "font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); "
+                "text-transform: uppercase;"
             )
             ui.upload(
                 label="Drop a sample or context file",
                 multiple=False,
-                on_upload=lambda e: None,
+                on_upload=lambda e: _handle_context_upload(e),
             ).props("flat").style("width: 100%;")
 
             scan_dir_input = (
@@ -274,39 +287,43 @@ with ui.element("div").style(
                 .style("width: 100%;")
             )
 
-        # ── Right: status / progress ───────────────────────────────────────────
+        ## ── Right: status / progress ───────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 6px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;"
+            "border-radius: 6px; padding: 1.5rem; display: flex; "
+            "flex-direction: column; gap: 1rem;"
         ):
             ui.label("// PIPELINE STATUS").style(
-                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; margin-bottom: 0.25rem;"
+                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; "
+                "margin-bottom: 0.25rem;"
             )
 
-            # Stage indicators (decorative)
             stages = [
                 ("01", "GENERATE", "#00d4ff"),
                 ("02", "VERIFY", "#facc15"),
                 ("03", "REVIEW", "#c084fc"),
                 ("04", "DEPLOY", "#4ade80"),
             ]
-            with ui.element("div").style("display: flex; flex-direction: column; gap: 0.5rem;"):
+            with ui.element("div").style(
+                "display: flex; flex-direction: column; gap: 0.5rem;"
+            ):
                 for num, name, color in stages:
                     with ui.element("div").style(
-                        "display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; "
-                        f"border-left: 2px solid {color}22; border-radius: 0 4px 4px 0; "
-                        "background: #ffffff04;"
+                        "display: flex; align-items: center; gap: 0.75rem; "
+                        f"padding: 0.5rem 0.75rem; border-left: 2px solid {color}22; "
+                        "border-radius: 0 4px 4px 0; background: #ffffff04;"
                     ):
                         ui.label(num).style(
-                            f"font-size: 0.65rem; color: {color}; letter-spacing: 0.1em; min-width: 1.5rem;"
+                            f"font-size: 0.65rem; color: {color}; "
+                            "letter-spacing: 0.1em; min-width: 1.5rem;"
                         )
                         ui.label(name).style(
-                            f"font-size: 0.75rem; color: {color}aa; letter-spacing: 0.1em;"
+                            f"font-size: 0.75rem; color: {color}aa; "
+                            "letter-spacing: 0.1em;"
                         )
 
             ui.element("div").style("flex: 1;")
 
-            # Progress bar
             with ui.element("div").style("margin-top: 0.5rem;"):
                 progress_label = ui.label("Ready").style(
                     "font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; "
@@ -319,38 +336,47 @@ with ui.element("div").style(
                 )
                 progress_bar.visible = False
 
-    # ── Log console ───────────────────────────────────────────────────────────
+    ## ── Log console ───────────────────────────────────────────────────────────
     with ui.element("div").style(
         "background: #060809; border: 1px solid var(--border); border-radius: 6px; "
         "margin-bottom: 1.25rem; overflow: hidden;"
     ):
         with ui.element("div").style(
             "display: flex; align-items: center; justify-content: space-between; "
-            "padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: var(--panel);"
+            "padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); "
+            "background: var(--panel);"
         ):
-            with ui.element("div").style("display: flex; align-items: center; gap: 0.5rem;"):
+            with ui.element("div").style(
+                "display: flex; align-items: center; gap: 0.5rem;"
+            ):
                 for c in ["#f87171", "#facc15", "#4ade80"]:
                     ui.element("div").style(
-                        f"width: 9px; height: 9px; border-radius: 50%; background: {c}44; border: 1px solid {c};"
+                        f"width: 9px; height: 9px; border-radius: 50%; "
+                        f"background: {c}44; border: 1px solid {c};"
                     )
                 ui.label("console.log").style(
-                    "font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; margin-left: 0.5rem;"
+                    "font-size: 0.68rem; color: var(--muted); "
+                    "letter-spacing: 0.08em; margin-left: 0.5rem;"
                 )
-            ui.label("SENTINEL / v1.0").style("font-size: 0.65rem; color: #1e2433; letter-spacing: 0.08em;")
+            ui.label("SENTINEL / v1.0").style(
+                "font-size: 0.65rem; color: #1e2433; letter-spacing: 0.08em;"
+            )
 
         with ui.element("div").props('id="log-scroll"').style(
             "height: 220px; overflow-y: auto; padding: 0.85rem 1rem;"
         ):
-            log_container = ui.element("div").style("display: flex; flex-direction: column; gap: 0;")
+            log_container = ui.element("div").style(
+                "display: flex; flex-direction: column; gap: 0;"
+            )
             with log_container:
                 ui.label("[ Sentinel ready. Awaiting input. ]").style(
                     "font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; "
                     "color: #2d3748; font-style: italic;"
                 )
 
-    # ── Run button ────────────────────────────────────────────────────────────
+    ## ── Run button ────────────────────────────────────────────────────────────
     with ui.element("div").style("display: flex; justify-content: flex-end;"):
-        btn = ui.button(
+        ui.button(
             "RUN",
             on_click=lambda: asyncio.create_task(run_pipeline(ui.context.client)),
         ).style(
@@ -363,4 +389,32 @@ with ui.element("div").style(
         )
 
 
-ui.run(title="Sentinel", port=8081, dark=True,favicon="/atomic.png")
+def _handle_context_upload(event):
+    """Store uploaded context file content in global state."""
+    global context_content
+    try:
+        content = event.content.read().decode("utf-8")
+        context_content = content
+        append_log(f"[INPUT] Context file loaded: {event.name} ({len(content)} bytes)")
+    except Exception as e:
+        append_log(f"[ERROR] Failed to read context file: {e}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sentinel Web UI")
+    parser.add_argument(
+        "--port", type=int, default=8081,
+        help="Port to run the web server on (default: 8081)"
+    )
+    args = parser.parse_args()
+
+    ui.run(
+        title="Sentinel",
+        port=args.port,
+        dark=True,
+        favicon=str(BASE_DIR / "frontend/atomic.png"),
+    )
+
+
+if __name__ == "__main__":
+    main()
