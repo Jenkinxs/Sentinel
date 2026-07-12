@@ -27,11 +27,11 @@ def append_log(msg: str, client=None):
     if log_container is None:
         return
     prefix_color = {
-        "[SUCCESS]": "#4ade80", "[ERROR]": "#f87171", "[SEARCH]": "#60a5fa",
-        "[TOOL]": "#facc15", "[REVIEW]": "#c084fc", "[INPUT]": "#60a5fa",
-        "[SAVE]": "#94a3b8", "[RESULTS]": "#34d399", "[WARNING]": "#fb923c",
+        "[SUCCESS]": "#1a7d36", "[ERROR]": "#c91d39", "[SEARCH]": "#8b5cf6",
+        "[TOOL]": "#d97706", "[REVIEW]": "#c91d39", "[INPUT]": "#4b5563",
+        "[SAVE]": "#6b7280", "[RESULTS]": "#1a7d36", "[WARNING]": "#d97706",
     }
-    color = "#94a3b8"
+    color = "#6b7280"
     for emoji, c in prefix_color.items():
         if msg.startswith(emoji):
             color = c
@@ -159,37 +159,37 @@ async def run_pipeline(client):
 ## ── Global styles ─────────────────────────────────────────────────────────────
 ui.add_head_html("""\
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #0a0c10;
-    --panel:     #0f1218;
-    --border:    #1e2433;
-    --accent:    #00d4ff;
-    --accent2:   #7c3aed;
-    --text:      #cdd6f4;
-    --muted:     #4a5568;
-    --success:   #4ade80;
-    --danger:    #f87171;
-    --warning:   #facc15;
+    --bg:        #f8f5f0;
+    --panel:     #ffffff;
+    --border:    #e5ddd4;
+    --accent:    #c91d39;
+    --accent-hover: #a81830;
+    --text:      #1a1a1a;
+    --muted:     #7d7168;
+    --success:   #1a7d36;
+    --danger:    #c91d39;
+    --warning:   #d97706;
   }
 
   body, .nicegui-content {
     background: var(--bg) !important;
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Lora', Georgia, 'Times New Roman', serif !important;
     color: var(--text) !important;
     min-height: 100vh;
   }
 
   .q-field__native, .q-field__input, textarea {
     color: var(--text) !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.82rem !important;
+    font-family: 'Lora', Georgia, serif !important;
+    font-size: 0.9rem !important;
   }
   .q-field--outlined .q-field__control {
-    background: #0d1117 !important;
+    background: var(--panel) !important;
     border-color: var(--border) !important;
-    border-radius: 4px !important;
+    border-radius: 3px !important;
   }
   .q-field--outlined.q-field--focused .q-field__control {
     border-color: var(--accent) !important;
@@ -197,10 +197,10 @@ ui.add_head_html("""\
   }
   .q-field__label {
     color: var(--muted) !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.72rem !important;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Lora', Georgia, serif !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em;
   }
   .q-field--focused .q-field__label {
     color: var(--accent) !important;
@@ -209,12 +209,25 @@ ui.add_head_html("""\
   .q-linear-progress__track { background: var(--border) !important; }
   .q-linear-progress__model { background: var(--accent) !important; }
 
-  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  .q-uploader { background: #0d1117 !important; border: 1px dashed var(--border) !important; border-radius: 4px !important; }
-  .q-uploader__header { background: transparent !important; color: var(--muted) !important; }
+  .q-uploader {
+    background: var(--panel) !important;
+    border: 1px dashed var(--border) !important;
+    border-radius: 3px !important;
+  }
+  .q-uploader__header {
+    background: transparent !important;
+    color: var(--muted) !important;
+    font-family: 'Lora', Georgia, serif !important;
+  }
+
+  .q-uploader__file {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.78rem !important;
+  }
 </style>
 """)
 
@@ -227,23 +240,23 @@ with ui.element("div").style(
     ## ── Header ────────────────────────────────────────────────────────────────
     with ui.element("div").style("margin-bottom: 2.5rem;"):
         with ui.element("div").style(
-            "display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem;"
+            "display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem;"
         ):
             ui.label("Plurilock").style(
-                "font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; "
-                "letter-spacing: 0.2em; color: #ffffff;"
+                "font-family: 'Playfair Display', Georgia, serif; font-weight: 900; "
+                "font-size: 1.8rem; color: #000000; letter-spacing: -0.01em;"
             )
-            ui.label("SENTINEL").style(
-                "font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; "
-                "letter-spacing: 0.2em; color: #ff0000;"
+            ui.label("Sentinel").style(
+                "font-family: 'Playfair Display', Georgia, serif; font-style: italic; "
+                "font-weight: 400; font-size: 1.8rem; color: #c91d39;"
             )
         ui.label("Automated threat rule generation").style(
-            "font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; "
-            "text-transform: uppercase;"
+            "font-family: 'Lora', Georgia, serif; font-size: 0.8rem; "
+            "color: var(--muted); font-style: italic;"
         )
         ui.element("div").style(
-            "margin-top: 1rem; height: 1px; "
-            "background: linear-gradient(90deg, #00d4ff 0%, #7c3aed 40%, transparent 100%);"
+            "margin-top: 0.9rem; height: 1px; "
+            "background: linear-gradient(90deg, #c91d39 0%, #c91d3944 60%, transparent 100%);"
         )
 
     ## ── Two-column grid ────────────────────────────────────────────────────────
@@ -254,12 +267,14 @@ with ui.element("div").style(
         ## ── Left: inputs ──────────────────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 6px; padding: 1.5rem; display: flex; "
+            "border-radius: 4px; padding: 1.5rem; display: flex; "
             "flex-direction: column; gap: 1rem;"
         ):
-            ui.label("// INPUT PARAMETERS").style(
-                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; "
-                "margin-bottom: 0.25rem;"
+            ui.label("Input").style(
+                "font-family: 'Playfair Display', Georgia, serif; "
+                "font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; "
+                "color: var(--accent); text-transform: uppercase; "
+                "margin-bottom: 0.15rem;"
             )
 
             description_input = (
@@ -272,8 +287,7 @@ with ui.element("div").style(
             )
 
             ui.label("Context file (optional)").style(
-                "font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); "
-                "text-transform: uppercase;"
+                "font-size: 0.72rem; font-weight: 500; color: var(--muted);"
             )
             ui.upload(
                 label="Drop a sample or context file",
@@ -290,80 +304,88 @@ with ui.element("div").style(
         ## ── Right: status / progress ───────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 6px; padding: 1.5rem; display: flex; "
+            "border-radius: 4px; padding: 1.5rem; display: flex; "
             "flex-direction: column; gap: 1rem;"
         ):
-            ui.label("// PIPELINE STATUS").style(
-                "font-size: 0.68rem; letter-spacing: 0.12em; color: #00d4ff; "
-                "margin-bottom: 0.25rem;"
+            ui.label("Pipeline").style(
+                "font-family: 'Playfair Display', Georgia, serif; "
+                "font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; "
+                "color: var(--accent); text-transform: uppercase; "
+                "margin-bottom: 0.15rem;"
             )
 
             stages = [
-                ("01", "GENERATE", "#00d4ff"),
-                ("02", "VERIFY", "#facc15"),
-                ("03", "REVIEW", "#c084fc"),
-                ("04", "DEPLOY", "#4ade80"),
+                ("01", "Generate", "#c91d39"),
+                ("02", "Verify", "#c91d39"),
+                ("03", "Review", "#c91d39"),
+                ("04", "Deploy", "#c91d39"),
             ]
             with ui.element("div").style(
-                "display: flex; flex-direction: column; gap: 0.5rem;"
+                "display: flex; flex-direction: column; gap: 0.35rem;"
             ):
                 for num, name, color in stages:
                     with ui.element("div").style(
                         "display: flex; align-items: center; gap: 0.75rem; "
-                        f"padding: 0.5rem 0.75rem; border-left: 2px solid {color}22; "
-                        "border-radius: 0 4px 4px 0; background: #ffffff04;"
+                        f"padding: 0.45rem 0.75rem; "
+                        "border-left: 2px solid var(--border); "
+                        "border-radius: 0 3px 3px 0;"
                     ):
                         ui.label(num).style(
-                            f"font-size: 0.65rem; color: {color}; "
+                            f"font-family: 'JetBrains Mono', monospace; "
+                            f"font-size: 0.6rem; color: {color}; "
                             "letter-spacing: 0.1em; min-width: 1.5rem;"
                         )
                         ui.label(name).style(
-                            f"font-size: 0.75rem; color: {color}aa; "
-                            "letter-spacing: 0.1em;"
+                            f"font-family: 'Lora', Georgia, serif; "
+                            f"font-size: 0.78rem; color: var(--text); "
+                            "letter-spacing: 0.02em;"
                         )
 
             ui.element("div").style("flex: 1;")
 
             with ui.element("div").style("margin-top: 0.5rem;"):
                 progress_label = ui.label("Ready").style(
-                    "font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; "
-                    "text-transform: uppercase; margin-bottom: 0.4rem; display: block;"
+                    "font-family: 'Lora', Georgia, serif; "
+                    "font-size: 0.7rem; font-style: italic; "
+                    "color: var(--muted); margin-bottom: 0.4rem; display: block;"
                 )
                 progress_label.visible = False
 
-                progress_bar = ui.linear_progress(value=0).props("rounded").style(
-                    "height: 4px; border-radius: 2px;"
+                progress_bar = ui.linear_progress(value=0).style(
+                    "height: 3px; border-radius: 2px;"
                 )
                 progress_bar.visible = False
 
     ## ── Log console ───────────────────────────────────────────────────────────
     with ui.element("div").style(
-        "background: #060809; border: 1px solid var(--border); border-radius: 6px; "
-        "margin-bottom: 1.25rem; overflow: hidden;"
+        "background: var(--panel); border: 1px solid var(--border); "
+        "border-radius: 4px; margin-bottom: 1.25rem; overflow: hidden;"
     ):
         with ui.element("div").style(
             "display: flex; align-items: center; justify-content: space-between; "
-            "padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); "
-            "background: var(--panel);"
+            "padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); "
+            "background: #faf8f6;"
         ):
             with ui.element("div").style(
-                "display: flex; align-items: center; gap: 0.5rem;"
+                "display: flex; align-items: center; gap: 0.4rem;"
             ):
-                for c in ["#f87171", "#facc15", "#4ade80"]:
+                for c in ["#c91d39", "#d97706", "#1a7d36"]:
                     ui.element("div").style(
-                        f"width: 9px; height: 9px; border-radius: 50%; "
-                        f"background: {c}44; border: 1px solid {c};"
+                        f"width: 7px; height: 7px; border-radius: 50%; "
+                        f"background: {c}33; border: 1px solid {c};"
                     )
-                ui.label("console.log").style(
-                    "font-size: 0.68rem; color: var(--muted); "
-                    "letter-spacing: 0.08em; margin-left: 0.5rem;"
+                ui.label("Log").style(
+                    "font-family: 'Lora', Georgia, serif; "
+                    "font-size: 0.7rem; color: var(--muted); "
+                    "letter-spacing: 0.04em; margin-left: 0.3rem;"
                 )
-            ui.label("SENTINEL / v1.0").style(
-                "font-size: 0.65rem; color: #1e2433; letter-spacing: 0.08em;"
+            ui.label("Sentinel / v1.0").style(
+                "font-family: 'JetBrains Mono', monospace; "
+                "font-size: 0.6rem; color: var(--border);"
             )
 
         with ui.element("div").props('id="log-scroll"').style(
-            "height: 220px; overflow-y: auto; padding: 0.85rem 1rem;"
+            "height: 220px; overflow-y: auto; padding: 0.75rem 1rem;"
         ):
             log_container = ui.element("div").style(
                 "display: flex; flex-direction: column; gap: 0;"
@@ -371,21 +393,26 @@ with ui.element("div").style(
             with log_container:
                 ui.label("[ Sentinel ready. Awaiting input. ]").style(
                     "font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; "
-                    "color: #2d3748; font-style: italic;"
+                    "color: var(--border); font-style: italic;"
                 )
 
     ## ── Run button ────────────────────────────────────────────────────────────
     with ui.element("div").style("display: flex; justify-content: flex-end;"):
         ui.button(
-            "RUN",
+            "Run Pipeline",
             on_click=lambda: asyncio.create_task(run_pipeline(ui.context.client)),
         ).style(
-            "background: linear-gradient(135deg, #0ea5e9, #7c3aed) !important; "
-            "color: #ffffff !important; font-family: 'JetBrains Mono', monospace !important; "
-            "font-size: 0.78rem !important; font-weight: 600 !important; "
-            "letter-spacing: 0.14em !important; padding: 0.7rem 2rem !important; "
-            "border-radius: 4px !important; border: none !important; cursor: pointer; "
-            "text-transform: uppercase !important; box-shadow: 0 0 20px #0ea5e944;"
+            "background: #c91d39 !important; "
+            "color: #ffffff !important; "
+            "font-family: 'Playfair Display', Georgia, serif !important; "
+            "font-size: 0.8rem !important; font-weight: 700 !important; "
+            "font-style: italic !important; "
+            "letter-spacing: 0.03em !important; "
+            "padding: 0.6rem 1.8rem !important; "
+            "border-radius: 3px !important; "
+            "border: none !important; cursor: pointer !important; "
+            "box-shadow: 0 1px 3px rgba(201, 29, 57, 0.25); "
+            "transition: background 0.15s ease;"
         )
 
 
@@ -411,7 +438,7 @@ def main():
     ui.run(
         title="Sentinel",
         port=args.port,
-        dark=True,
+        dark=False,
         favicon=str(BASE_DIR / "frontend/atomic.png"),
     )
 
