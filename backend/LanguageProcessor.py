@@ -184,7 +184,7 @@ def call_model(prompt, response_type, is_fix_attempt=False, logger=None):
                 {"role": "user", "content": prompt},
             ],
             stream=STREAM,
-            timeout=60,
+            timeout=30,
         )
     except Exception as e:
         log(f"\nError calling {response_type}: {e}")

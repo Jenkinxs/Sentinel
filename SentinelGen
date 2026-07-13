@@ -43,3 +43,19 @@ rule Mimikatz_Credential_Dumping {
     condition:
         pe.is_pe and filesize < 10MB and 3 of ($s*)
 }
+
+EXAMPLE INPUT: "Detect a PE file with a section named .cfin0 that is writable and executable"
+EXAMPLE OUTPUT:
+import "pe"
+
+rule Section_CFIN0 {
+    meta:
+        description = "Detects PE files with .cfin0 section"
+        author = "YARA-Pipeline"
+        date = "2025-04-18"
+    condition:
+        pe.is_pe and
+        for any i in (0..pe.number_of_sections-1) : (
+            pe.sections[i].name == ".cfin0"
+        )
+}
