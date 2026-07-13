@@ -439,6 +439,7 @@ def main():
         title="Sentinel",
         port=args.port,
         dark=False,
+        reload=False,
         favicon=str(BASE_DIR / "frontend/atomic.png"),
     )
 
