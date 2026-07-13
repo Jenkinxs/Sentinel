@@ -234,42 +234,47 @@ ui.add_head_html("""\
 
 ## ── Layout ────────────────────────────────────────────────────────────────────
 with ui.element("div").style(
-    "max-width: 100%; padding: 1.5rem 2rem; min-height: 100vh;"
+    "max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem; min-height: 100vh;"
 ):
 
     ## ── Header ────────────────────────────────────────────────────────────────
-    with ui.element("div").style("margin-bottom: 1rem;"):
+    with ui.element("div").style("margin-bottom: 2.5rem;"):
         with ui.element("div").style(
-            "display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.2rem;"
+            "display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem;"
         ):
             ui.label("Plurilock").style(
                 "font-family: 'Playfair Display', Georgia, serif; font-weight: 900; "
-                "font-size: 1.5rem; color: #000000; letter-spacing: -0.01em;"
+                "font-size: 1.8rem; color: #000000; letter-spacing: -0.01em;"
             )
             ui.label("Sentinel").style(
                 "font-family: 'Playfair Display', Georgia, serif; font-style: italic; "
-                "font-weight: 400; font-size: 1.5rem; color: #c91d39;"
+                "font-weight: 400; font-size: 1.8rem; color: #c91d39;"
             )
         ui.label("Automated threat rule generation").style(
-            "font-family: 'Lora', Georgia, serif; font-size: 0.72rem; "
+            "font-family: 'Lora', Georgia, serif; font-size: 0.8rem; "
             "color: var(--muted); font-style: italic;"
         )
+        ui.element("div").style(
+            "margin-top: 0.9rem; height: 1px; "
+            "background: linear-gradient(90deg, #c91d39 0%, #c91d3944 60%, transparent 100%);"
+        )
 
-    ## ── Three-column grid: Input | Pipeline | Log ──────────────────────────────
+    ## ── Two-column grid ────────────────────────────────────────────────────────
     with ui.element("div").style(
-        "display: grid; grid-template-columns: 1.2fr 0.8fr 1.5fr; gap: 1rem; "
-        "margin-bottom: 1rem;"
+        "display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; "
+        "margin-bottom: 1.25rem;"
     ):
-        ## ── Column 1: Input ───────────────────────────────────────────────────
+        ## ── Left: inputs ──────────────────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 4px; padding: 1.25rem; display: flex; "
-            "flex-direction: column; gap: 0.75rem;"
+            "border-radius: 4px; padding: 1.5rem; display: flex; "
+            "flex-direction: column; gap: 1rem;"
         ):
             ui.label("Input").style(
                 "font-family: 'Playfair Display', Georgia, serif; "
-                "font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; "
-                "color: var(--accent); text-transform: uppercase;"
+                "font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; "
+                "color: var(--accent); text-transform: uppercase; "
+                "margin-bottom: 0.15rem;"
             )
 
             description_input = (
@@ -277,12 +282,12 @@ with ui.element("div").style(
                     label="Malware description",
                     placeholder="Describe the malware behaviour, IOCs, or threat characteristics..."
                 )
-                .props("outlined autogrow rows=5")
+                .props("outlined autogrow rows=6")
                 .style("width: 100%;")
             )
 
             ui.label("Context file (optional)").style(
-                "font-size: 0.68rem; font-weight: 500; color: var(--muted);"
+                "font-size: 0.72rem; font-weight: 500; color: var(--muted);"
             )
             ui.upload(
                 label="Drop a sample or context file",
@@ -296,16 +301,17 @@ with ui.element("div").style(
                 .style("width: 100%;")
             )
 
-        ## ── Column 2: Pipeline status ─────────────────────────────────────────
+        ## ── Right: status / progress ───────────────────────────────────────────
         with ui.element("div").style(
             "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 4px; padding: 1.25rem; display: flex; "
-            "flex-direction: column; gap: 0.75rem;"
+            "border-radius: 4px; padding: 1.5rem; display: flex; "
+            "flex-direction: column; gap: 1rem;"
         ):
             ui.label("Pipeline").style(
                 "font-family: 'Playfair Display', Georgia, serif; "
-                "font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; "
-                "color: var(--accent); text-transform: uppercase;"
+                "font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; "
+                "color: var(--accent); text-transform: uppercase; "
+                "margin-bottom: 0.15rem;"
             )
 
             stages = [
@@ -315,33 +321,33 @@ with ui.element("div").style(
                 ("04", "Deploy", "#c91d39"),
             ]
             with ui.element("div").style(
-                "display: flex; flex-direction: column; gap: 0.3rem;"
+                "display: flex; flex-direction: column; gap: 0.35rem;"
             ):
                 for num, name, color in stages:
                     with ui.element("div").style(
-                        "display: flex; align-items: center; gap: 0.6rem; "
-                        f"padding: 0.35rem 0.6rem; "
+                        "display: flex; align-items: center; gap: 0.75rem; "
+                        f"padding: 0.45rem 0.75rem; "
                         "border-left: 2px solid var(--border); "
                         "border-radius: 0 3px 3px 0;"
                     ):
                         ui.label(num).style(
                             f"font-family: 'JetBrains Mono', monospace; "
-                            f"font-size: 0.55rem; color: {color}; "
-                            "letter-spacing: 0.1em; min-width: 1.3rem;"
+                            f"font-size: 0.6rem; color: {color}; "
+                            "letter-spacing: 0.1em; min-width: 1.5rem;"
                         )
                         ui.label(name).style(
                             f"font-family: 'Lora', Georgia, serif; "
-                            f"font-size: 0.75rem; color: var(--text); "
+                            f"font-size: 0.78rem; color: var(--text); "
                             "letter-spacing: 0.02em;"
                         )
 
             ui.element("div").style("flex: 1;")
 
-            with ui.element("div").style("margin-top: 0.25rem;"):
+            with ui.element("div").style("margin-top: 0.5rem;"):
                 progress_label = ui.label("Ready").style(
                     "font-family: 'Lora', Georgia, serif; "
-                    "font-size: 0.65rem; font-style: italic; "
-                    "color: var(--muted); margin-bottom: 0.3rem; display: block;"
+                    "font-size: 0.7rem; font-style: italic; "
+                    "color: var(--muted); margin-bottom: 0.4rem; display: block;"
                 )
                 progress_label.visible = False
 
@@ -350,65 +356,64 @@ with ui.element("div").style(
                 )
                 progress_bar.visible = False
 
-            ## ── Run button inline in pipeline column ──────────────────────────
-            ui.element("div").style("flex: 1;")
-            ui.button(
-                "Run Pipeline",
-                on_click=lambda: asyncio.create_task(run_pipeline(ui.context.client)),
-            ).style(
-                "background: #c91d39 !important; "
-                "color: #ffffff !important; "
-                "font-family: 'Playfair Display', Georgia, serif !important; "
-                "font-size: 0.75rem !important; font-weight: 700 !important; "
-                "font-style: italic !important; "
-                "letter-spacing: 0.03em !important; "
-                "padding: 0.5rem 1.5rem !important; "
-                "border-radius: 3px !important; "
-                "border: none !important; cursor: pointer !important; "
-                "box-shadow: 0 1px 3px rgba(201, 29, 57, 0.25); "
-                "transition: background 0.15s ease;"
-            )
-
-        ## ── Column 3: Log console ─────────────────────────────────────────────
+    ## ── Log console ───────────────────────────────────────────────────────────
+    with ui.element("div").style(
+        "background: var(--panel); border: 1px solid var(--border); "
+        "border-radius: 4px; margin-bottom: 1.25rem; overflow: hidden;"
+    ):
         with ui.element("div").style(
-            "background: var(--panel); border: 1px solid var(--border); "
-            "border-radius: 4px; overflow: hidden; display: flex; "
-            "flex-direction: column;"
+            "display: flex; align-items: center; justify-content: space-between; "
+            "padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); "
+            "background: #faf8f6;"
         ):
             with ui.element("div").style(
-                "display: flex; align-items: center; justify-content: space-between; "
-                "padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--border); "
-                "background: #faf8f6; flex-shrink: 0;"
+                "display: flex; align-items: center; gap: 0.4rem;"
             ):
-                with ui.element("div").style(
-                    "display: flex; align-items: center; gap: 0.35rem;"
-                ):
-                    for c in ["#c91d39", "#d97706", "#1a7d36"]:
-                        ui.element("div").style(
-                            f"width: 6px; height: 6px; border-radius: 50%; "
-                            f"background: {c}33; border: 1px solid {c};"
-                        )
-                    ui.label("Log").style(
-                        "font-family: 'Lora', Georgia, serif; "
-                        "font-size: 0.65rem; color: var(--muted); "
-                        "letter-spacing: 0.04em; margin-left: 0.2rem;"
+                for c in ["#c91d39", "#d97706", "#1a7d36"]:
+                    ui.element("div").style(
+                        f"width: 7px; height: 7px; border-radius: 50%; "
+                        f"background: {c}33; border: 1px solid {c};"
                     )
-                ui.label("Sentinel / v1.0").style(
-                    "font-family: 'JetBrains Mono', monospace; "
-                    "font-size: 0.55rem; color: var(--border);"
+                ui.label("Log").style(
+                    "font-family: 'Lora', Georgia, serif; "
+                    "font-size: 0.7rem; color: var(--muted); "
+                    "letter-spacing: 0.04em; margin-left: 0.3rem;"
+                )
+            ui.label("Sentinel / v1.0").style(
+                "font-family: 'JetBrains Mono', monospace; "
+                "font-size: 0.6rem; color: var(--border);"
+            )
+
+        with ui.element("div").props('id="log-scroll"').style(
+            "height: 220px; overflow-y: auto; padding: 0.75rem 1rem;"
+        ):
+            log_container = ui.element("div").style(
+                "display: flex; flex-direction: column; gap: 0;"
+            )
+            with log_container:
+                ui.label("[ Sentinel ready. Awaiting input. ]").style(
+                    "font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; "
+                    "color: var(--border); font-style: italic;"
                 )
 
-            with ui.element("div").props('id="log-scroll"').style(
-                "flex: 1; overflow-y: auto; padding: 0.6rem 0.8rem; min-height: 280px;"
-            ):
-                log_container = ui.element("div").style(
-                    "display: flex; flex-direction: column; gap: 0;"
-                )
-                with log_container:
-                    ui.label("[ Sentinel ready. Awaiting input. ]").style(
-                        "font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; "
-                        "color: var(--border); font-style: italic;"
-                    )
+    ## ── Run button ────────────────────────────────────────────────────────────
+    with ui.element("div").style("display: flex; justify-content: flex-end;"):
+        ui.button(
+            "Run Pipeline",
+            on_click=lambda: asyncio.create_task(run_pipeline(ui.context.client)),
+        ).style(
+            "background: #c91d39 !important; "
+            "color: #ffffff !important; "
+            "font-family: 'Playfair Display', Georgia, serif !important; "
+            "font-size: 0.8rem !important; font-weight: 700 !important; "
+            "font-style: italic !important; "
+            "letter-spacing: 0.03em !important; "
+            "padding: 0.6rem 1.8rem !important; "
+            "border-radius: 3px !important; "
+            "border: none !important; cursor: pointer !important; "
+            "box-shadow: 0 1px 3px rgba(201, 29, 57, 0.25); "
+            "transition: background 0.15s ease;"
+        )
 
 
 def _handle_context_upload(event):
