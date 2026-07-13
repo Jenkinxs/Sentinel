@@ -1,7 +1,5 @@
 # Plurilock Sentinel
 
-YARA rule generation, powered by AI.
-
 Describe a threat in natural language — Sentinel generates a YARA rule, verifies its syntax, reviews it against your intent, iteratively improves it via a generator-reviewer feedback loop, and optionally scans a directory for matches.
 
 ## Quick Start
