@@ -430,6 +430,10 @@ def _handle_context_upload(event):
 def main():
     parser = argparse.ArgumentParser(description="Sentinel Web UI")
     parser.add_argument(
+        "--host", type=str, default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0)"
+    )
+    parser.add_argument(
         "--port", type=int, default=8081,
         help="Port to run the web server on (default: 8081)"
     )
@@ -437,6 +441,7 @@ def main():
 
     ui.run(
         title="Sentinel",
+        host=args.host,
         port=args.port,
         dark=False,
         reload=False,
