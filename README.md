@@ -1,6 +1,6 @@
 # Plurilock Sentinel
 
-Describe a threat in natural language — Sentinel generates a YARA rule, verifies its syntax, reviews it against your intent, iteratively improves it via a generator-reviewer feedback loop, and optionally scans a directory for matches.
+Describe a threat in natural language and Sentinel generates a YARA rule, verifies its syntax, reviews it against your intent, iteratively improves it via a generator-reviewer feedback loop, and optionally scans a directory for matches.
 
 ## Quick Start
 
